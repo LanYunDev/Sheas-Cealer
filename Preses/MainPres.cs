@@ -2,7 +2,6 @@
 using System.Diagnostics;
 using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
-using MaterialDesignThemes.Wpf;
 using Microsoft.Win32;
 using Sheas_Cealer.Consts;
 using Sheas_Cealer.Props;
@@ -10,7 +9,7 @@ using File = System.IO.File;
 
 namespace Sheas_Cealer.Preses;
 
-internal partial class MainPres : ObservableObject
+internal partial class MainPres : GlobalPres
 {
     internal MainPres(string[] args)
     {
@@ -68,17 +67,6 @@ internal partial class MainPres : ObservableObject
             Settings.Default.ExtraArgs = value;
             Settings.Default.Save();
         }
-    }
-
-    [ObservableProperty]
-    private bool? isLightTheme = null;
-    partial void OnIsLightThemeChanged(bool? value)
-    {
-        PaletteHelper paletteHelper = new();
-        Theme newTheme = paletteHelper.GetTheme();
-
-        newTheme.SetBaseTheme(value.HasValue ? value.GetValueOrDefault() ? BaseTheme.Light : BaseTheme.Dark : BaseTheme.Inherit);
-        paletteHelper.SetTheme(newTheme);
     }
 
     [ObservableProperty]
