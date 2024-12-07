@@ -272,7 +272,12 @@ public partial class MainWin : Window
                 }
 
                 if (!MainPres.IsNginxRunning)
+                {
+                    if (MessageBox.Show(MainConst._LaunchNginxErrorPrompt, string.Empty, MessageBoxButton.YesNo) == MessageBoxResult.Yes)
+                        Process.Start(new ProcessStartInfo(MainConst.NginxErrorLogsPath) { UseShellExecute = true });
+
                     break;
+                }
             }
 
             File.WriteAllText(MainConst.NginxConfPath, ExtraNginxConfs);
@@ -334,7 +339,11 @@ public partial class MainWin : Window
                 }
 
                 if (!MainPres.IsMihomoRunning)
+                {
+                    MessageBox.Show(MainConst._LaunchMihomoErrorMsg);
+
                     break;
+                }
             }
 
             File.WriteAllText(MainConst.MihomoConfPath, ExtraMihomoConfs);
@@ -358,8 +367,7 @@ public partial class MainWin : Window
         if (!File.Exists(cealHostPath))
             File.Create(cealHostPath).Dispose();
 
-        ProcessStartInfo processStartInfo = new(cealHostPath) { UseShellExecute = true };
-        Process.Start(processStartInfo);
+        Process.Start(new ProcessStartInfo(cealHostPath) { UseShellExecute = true });
     }
     private void EditConfButton_Click(object sender, RoutedEventArgs e)
     {
@@ -380,8 +388,7 @@ public partial class MainWin : Window
                 File.Create(confPath).Dispose();
         }
 
-        ProcessStartInfo processStartInfo = new(confPath) { UseShellExecute = true };
-        Process.Start(processStartInfo);
+        Process.Start(new ProcessStartInfo(confPath) { UseShellExecute = true });
     }
     private async void UpdateUpstreamHostButton_Click(object sender, RoutedEventArgs e)
     {
@@ -447,10 +454,22 @@ public partial class MainWin : Window
 
                 PaletteHelper paletteHelper = new();
                 Theme newTheme = paletteHelper.GetTheme();
+                Color newColor = Color.FromRgb((byte)random.Next(256), (byte)random.Next(256), (byte)random.Next(256));
+                bool isLightTheme = random.Next(2) == 0;
 
-                newTheme.SetPrimaryColor(Color.FromRgb((byte)random.Next(256), (byte)random.Next(256), (byte)random.Next(256)));
-                newTheme.SetBaseTheme(random.Next(2) == 0 ? BaseTheme.Light : BaseTheme.Dark);
+                newTheme.SetPrimaryColor(newColor);
+                newTheme.SetBaseTheme(isLightTheme ? BaseTheme.Light : BaseTheme.Dark);
                 paletteHelper.SetTheme(newTheme);
+
+                foreach (Window currentWindow in Application.Current.Windows)
+                    BorderThemeSetter.SetBorderTheme(currentWindow, isLightTheme);
+
+                Color? foregroundColor = ForegroundGenerator.GetForeground(newColor.R, newColor.G, newColor.B);
+
+                if (foregroundColor.HasValue)
+                    Application.Current.Resources["MaterialDesignBackground"] = new SolidColorBrush(foregroundColor.Value);
+                else
+                    Application.Current.Resources.Remove("MaterialDesignBackground");
 
                 if (GameFlashInterval > 100)
                     GameFlashInterval += random.Next(1, 4);
@@ -535,7 +554,6 @@ public partial class MainWin : Window
             int nullSniNum = 0;
 
             foreach (KeyValuePair<string, List<(List<(string cealHostIncludeDomain, string cealHostExcludeDomain)> cealHostDomainPairs, string? cealHostSni, string cealHostIp)>> cealHostRulesPair in CealHostRulesDict)
-            {
                 foreach ((List<(string cealHostIncludeDomain, string cealHostExcludeDomain)> cealHostDomainPairs, string? cealHostSni, string cealHostIp) in cealHostRulesPair.Value ?? [])
                 {
                     string cealHostSniWithoutNull = cealHostSni ?? $"{cealHostRulesPair.Key}{(cealHostRulesPair.Value ?? []).Count + ++nullSniNum}";
@@ -553,7 +571,6 @@ public partial class MainWin : Window
                     if (isValidCealHostDomainExist)
                         hostResolverRules += $"MAP {cealHostSniWithoutNull} {cealHostIp},";
                 }
-            }
 
             CealArgs = @$"--host-rules=""{hostRules.TrimEnd(',')}"" --host-resolver-rules=""{hostResolverRules.TrimEnd(',')}"" --test-type --ignore-certificate-errors";
 

@@ -70,5 +70,29 @@ namespace Sheas_Cealer.Props {
                 this["IsLightTheme"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("-1")]
+        public sbyte IsEnglishLang {
+            get {
+                return ((sbyte)(this["IsEnglishLang"]));
+            }
+            set {
+                this["IsEnglishLang"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("Red")]
+        public global::System.Drawing.Color PrimaryColor {
+            get {
+                return ((global::System.Drawing.Color)(this["PrimaryColor"]));
+            }
+            set {
+                this["PrimaryColor"] = value;
+            }
+        }
     }
 }
