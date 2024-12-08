@@ -285,11 +285,15 @@ public partial class MainWin : Window
             MainPres.IsNginxIniting = false;
         }
         else
+        {
             foreach (Process nginxProcess in Process.GetProcessesByName(Path.GetFileNameWithoutExtension(MainConst.NginxPath)))
             {
                 nginxProcess.Kill();
                 await nginxProcess.WaitForExitAsync();
             }
+
+            GlobalCealCleaner.Clean();
+        }
     }
     private void MihomoButton_Click(object sender, RoutedEventArgs e)
     {
@@ -466,10 +470,9 @@ public partial class MainWin : Window
 
                 Color? foregroundColor = ForegroundGenerator.GetForeground(newColor.R, newColor.G, newColor.B);
 
-                if (foregroundColor.HasValue)
-                    Application.Current.Resources["MaterialDesignBackground"] = new SolidColorBrush(foregroundColor.Value);
-                else
-                    Application.Current.Resources.Remove("MaterialDesignBackground");
+                Style newButtonStyle = new(typeof(Button), Application.Current.Resources[typeof(Button)] as Style);
+                newButtonStyle.Setters.Add(new Setter(Button.ForegroundProperty, foregroundColor.HasValue ? new SolidColorBrush(foregroundColor.Value) : new DynamicResourceExtension("MaterialDesignBackground")));
+                Application.Current.Resources[typeof(Button)] = newButtonStyle;
 
                 if (GameFlashInterval > 100)
                     GameFlashInterval += random.Next(1, 4);

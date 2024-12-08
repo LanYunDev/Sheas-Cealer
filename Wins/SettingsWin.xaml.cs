@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using MaterialDesignThemes.Wpf;
@@ -46,14 +47,14 @@ public partial class SettingsWin : Window
 
         Color? foregroundColor = ForegroundGenerator.GetForeground(newColor.R, newColor.G, newColor.B);
 
-        if (foregroundColor.HasValue)
-            Application.Current.Resources["MaterialDesignBackground"] = new SolidColorBrush(foregroundColor.Value);
-        else
-            Application.Current.Resources.Remove("MaterialDesignBackground");
+        Style newButtonStyle = new(typeof(Button), Application.Current.Resources[typeof(Button)] as Style);
+        newButtonStyle.Setters.Add(new Setter(Button.ForegroundProperty, foregroundColor.HasValue ? new SolidColorBrush(foregroundColor.Value) : new DynamicResourceExtension("MaterialDesignBackground")));
+        Application.Current.Resources[typeof(Button)] = newButtonStyle;
 
         Settings.Default.PrimaryColor = System.Drawing.Color.FromArgb(newColor.A, newColor.R, newColor.G, newColor.B);
         Settings.Default.Save();
     }
+    private void WeightsButton_Click(object sender, RoutedEventArgs e) => SettingsPres!.IsLightWeight = SettingsPres.IsLightWeight.HasValue ? SettingsPres.IsLightWeight.Value ? null : true : false;
 
     private void SettingsWin_KeyDown(object sender, KeyEventArgs e)
     {
