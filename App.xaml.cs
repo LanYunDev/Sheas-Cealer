@@ -15,8 +15,6 @@ public partial class App : Application
 {
     protected override void OnStartup(StartupEventArgs e)
     {
-        _ = new SettingsPres();
-
         #region Primary Color
         PaletteHelper paletteHelper = new();
         Theme newTheme = paletteHelper.GetTheme();
@@ -38,10 +36,12 @@ public partial class App : Application
 
         #region Foreground Color
         Style newButtonStyle = new(typeof(Button), Current.Resources[typeof(Button)] as Style);
-        Color? newForegroundColor = ForegroundGenerator.GetForeground(newPrimaryColor.R, newPrimaryColor.G, newPrimaryColor.B);
+        (Color? newForegroundColor, Color newAccentForegroundColor) = ForegroundGenerator.GetForeground(newPrimaryColor.R, newPrimaryColor.G, newPrimaryColor.B);
 
         newButtonStyle.Setters.Add(new Setter(Button.ForegroundProperty, newForegroundColor.HasValue ? new SolidColorBrush(newForegroundColor.Value) : new DynamicResourceExtension("MaterialDesignBackground")));
         Current.Resources[typeof(Button)] = newButtonStyle;
+
+        new SettingsPres().AccentForegroundColor = newAccentForegroundColor;
         #endregion Foreground Color
 
         new MainWin(e.Args).Show();
