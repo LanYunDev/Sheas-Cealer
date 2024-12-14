@@ -81,6 +81,11 @@ public partial class MainWin : Window
                 CealHostWatcher_Changed(null!, new(new(), Path.GetDirectoryName(cealHostPath)!, Path.GetFileName(cealHostPath)));
 
             MihomoConfWatcher_Changed(null!, null!);
+
+            if (!MainPres.IsNginxRunning)
+                NginxStoppedCleaner.Clean();
+
+            UpdateUpstreamHostButton_Click(null!, null!);
         });
     }
     private void MainWin_Closing(object sender, CancelEventArgs e) => Application.Current.Shutdown();
@@ -404,31 +409,45 @@ public partial class MainWin : Window
     }
     private async void UpdateUpstreamHostButton_Click(object sender, RoutedEventArgs e)
     {
-        if (!File.Exists(MainConst.UpstreamHostPath))
-            File.Create(MainConst.UpstreamHostPath).Dispose();
-
-        string upstreamUpstreamHostUrl = (MainPres.UpstreamUrl.StartsWith("http://") || MainPres.UpstreamUrl.StartsWith("https://") ? string.Empty : "https://") + MainPres.UpstreamUrl;
-        string upstreamUpstreamHostString = await Http.GetAsync<string>(upstreamUpstreamHostUrl, MainClient);
-        string localUpstreamHostString = File.ReadAllText(MainConst.UpstreamHostPath);
-
-        try { upstreamUpstreamHostString = Encoding.UTF8.GetString(Convert.FromBase64String(upstreamUpstreamHostString)); }
-        catch { }
-
-        if (localUpstreamHostString == upstreamUpstreamHostString || localUpstreamHostString.ReplaceLineEndings() == upstreamUpstreamHostString.ReplaceLineEndings())
-            MessageBox.Show(MainConst._UpstreamHostUtdMsg);
-        else
+        try
         {
-            MessageBoxResult overrideOptionResult = MessageBox.Show(MainConst._OverrideUpstreamHostPrompt, string.Empty, MessageBoxButton.YesNoCancel);
+            if (!File.Exists(MainConst.UpstreamHostPath))
+                File.Create(MainConst.UpstreamHostPath).Dispose();
 
-            if (overrideOptionResult == MessageBoxResult.Yes)
-            {
-                File.WriteAllText(MainConst.UpstreamHostPath, upstreamUpstreamHostString);
-                MessageBox.Show(MainConst._UpdateUpstreamHostSuccessMsg);
-            }
-            else if (overrideOptionResult == MessageBoxResult.No)
-                try { Process.Start(new ProcessStartInfo(upstreamUpstreamHostUrl) { UseShellExecute = true }); }
-                catch (UnauthorizedAccessException) { Process.Start(new ProcessStartInfo(upstreamUpstreamHostUrl) { UseShellExecute = true, Verb = "RunAs" }); }
+            string upstreamUpstreamHostUrl = (MainPres.UpstreamUrl.StartsWith("http://") || MainPres.UpstreamUrl.StartsWith("https://") ? string.Empty : "https://") + MainPres.UpstreamUrl;
+            string upstreamUpstreamHostString = await Http.GetAsync<string>(upstreamUpstreamHostUrl, MainClient);
+            string localUpstreamHostString = File.ReadAllText(MainConst.UpstreamHostPath);
+
+            try { upstreamUpstreamHostString = Encoding.UTF8.GetString(Convert.FromBase64String(upstreamUpstreamHostString)); }
+            catch { }
+
+            if (sender == null && (localUpstreamHostString != upstreamUpstreamHostString && localUpstreamHostString.ReplaceLineEndings() != upstreamUpstreamHostString.ReplaceLineEndings()))
+                MainPres.IsUpstreamHostUtd = false;
+            else if (sender != null)
+                if (localUpstreamHostString == upstreamUpstreamHostString || localUpstreamHostString.ReplaceLineEndings() == upstreamUpstreamHostString.ReplaceLineEndings())
+                {
+                    MainPres.IsUpstreamHostUtd = true;
+
+                    MessageBox.Show(MainConst._UpstreamHostUtdMsg);
+                }
+                else
+                {
+                    MessageBoxResult overrideOptionResult = MessageBox.Show(MainConst._OverrideUpstreamHostPrompt, string.Empty, MessageBoxButton.YesNoCancel);
+
+                    if (overrideOptionResult == MessageBoxResult.Yes)
+                    {
+                        File.WriteAllText(MainConst.UpstreamHostPath, upstreamUpstreamHostString);
+
+                        MainPres.IsUpstreamHostUtd = true;
+
+                        MessageBox.Show(MainConst._UpdateUpstreamHostSuccessMsg);
+                    }
+                    else if (overrideOptionResult == MessageBoxResult.No)
+                        try { Process.Start(new ProcessStartInfo(upstreamUpstreamHostUrl) { UseShellExecute = true }); }
+                        catch (UnauthorizedAccessException) { Process.Start(new ProcessStartInfo(upstreamUpstreamHostUrl) { UseShellExecute = true, Verb = "RunAs" }); }
+                }
         }
+        catch when (sender == null) { }
     }
 
     private void SettingsButton_Click(object sender, RoutedEventArgs e) => new SettingsWin().ShowDialog();
@@ -470,9 +489,12 @@ public partial class MainWin : Window
                 PaletteHelper paletteHelper = new();
                 Theme newTheme = paletteHelper.GetTheme();
                 Color newPrimaryColor = Color.FromRgb((byte)random.Next(256), (byte)random.Next(256), (byte)random.Next(256));
+                Color newSecondaryColor = random.Next(3) == 0 ? newPrimaryColor with { R = (byte)((newPrimaryColor.R + 109) % 256) } :
+                    random.Next(2) == 0 ? newPrimaryColor with { G = (byte)((newPrimaryColor.G + 109) % 256) } : newPrimaryColor with { B = (byte)((newPrimaryColor.B + 109) % 256) };
                 bool isLightTheme = random.Next(2) == 0;
 
                 newTheme.SetPrimaryColor(newPrimaryColor);
+                newTheme.SetSecondaryColor(newSecondaryColor);
                 newTheme.SetBaseTheme(isLightTheme ? BaseTheme.Light : BaseTheme.Dark);
                 paletteHelper.SetTheme(newTheme);
 
