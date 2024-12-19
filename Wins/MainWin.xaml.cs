@@ -55,13 +55,13 @@ public partial class MainWin : Window
     private int GameClickTime = 0;
     private int GameFlashInterval = 1000;
 
-    internal MainWin(string[] args)
+    internal MainWin()
     {
         InitializeComponent();
 
-        DataContext = MainPres = new(args);
+        DataContext = MainPres = new();
     }
-    protected override void OnSourceInitialized(EventArgs e)
+    private void MainWin_SourceInitialized(object sender, EventArgs e)
     {
         IconRemover.RemoveIcon(this);
         BorderThemeSetter.SetBorderTheme(this, MainPres.IsLightTheme);
@@ -84,6 +84,9 @@ public partial class MainWin : Window
 
             if (!MainPres.IsNginxRunning)
                 NginxCleaner.Clean();
+
+            if (Array.Exists(Environment.GetCommandLineArgs(), arg => arg.Equals("-s", StringComparison.OrdinalIgnoreCase)))
+                StartButton_Click(null!, null!);
 
             UpdateUpstreamHostButton_Click(null!, null!);
         });
@@ -148,7 +151,7 @@ public partial class MainWin : Window
     private void StartButton_Click(object sender, RoutedEventArgs e)
     {
         if (HoldButtonTimer == null || HoldButtonTimer.IsEnabled)
-            StartButtonHoldTimer_Tick(null, null!);
+            StartButtonHoldTimer_Tick(sender == null, null!);
     }
     private void StartButton_PreviewMouseDown(object sender, MouseButtonEventArgs e)
     {
@@ -161,7 +164,7 @@ public partial class MainWin : Window
         HoldButtonTimer?.Stop();
 
         if ((CealHostRulesDict.ContainsValue(null!) && MessageBox.Show(MainConst._CealHostErrorPrompt, string.Empty, MessageBoxButton.YesNo) != MessageBoxResult.Yes) ||
-            (MessageBox.Show(MainConst._KillBrowserProcessPrompt, string.Empty, MessageBoxButton.YesNo) != MessageBoxResult.Yes))
+            (!(sender is bool isSilent && isSilent) && MessageBox.Show(MainConst._KillBrowserProcessPrompt, string.Empty, MessageBoxButton.YesNo) != MessageBoxResult.Yes))
             return;
 
         foreach (Process browserProcess in Process.GetProcessesByName(Path.GetFileNameWithoutExtension(MainPres.BrowserPath)))
@@ -172,7 +175,7 @@ public partial class MainWin : Window
 
         await Task.Run(() =>
         {
-            new BrowserProc(MainPres.BrowserPath, sender == null).Run(Path.GetDirectoryName(MainPres.BrowserPath), $"{CealArgs} {MainPres.ExtraArgs.Trim()}");
+            new BrowserProc(MainPres.BrowserPath, sender is bool).Run(Path.GetDirectoryName(MainPres.BrowserPath), $"{CealArgs} {MainPres.ExtraArgs.Trim()}");
         });
     }
     private void NginxButton_Click(object sender, RoutedEventArgs e)
@@ -277,9 +280,9 @@ public partial class MainWin : Window
 
                     break;
                 }
-                catch (HttpRequestException ex) when (ex.InnerException is SocketException innerEx)
+                catch (HttpRequestException ex)
                 {
-                    if (innerEx.SocketErrorCode != SocketError.ConnectionRefused)
+                    if (ex.InnerException is SocketException innerEx && innerEx.SocketErrorCode != SocketError.ConnectionRefused)
                         break;
                 }
 
@@ -305,6 +308,10 @@ public partial class MainWin : Window
             }
 
             NginxCleaner.Clean();
+
+            NginxHttpPort = 80;
+            NginxHttpsPort = 443;
+            NginxConfWatcher_Changed(null!, null!);
         }
     }
     private void MihomoButton_Click(object sender, RoutedEventArgs e)
@@ -349,9 +356,9 @@ public partial class MainWin : Window
 
                     break;
                 }
-                catch (HttpRequestException ex) when (ex.InnerException is SocketException innerEx)
+                catch (HttpRequestException ex)
                 {
-                    if (innerEx.SocketErrorCode != SocketError.ConnectionRefused)
+                    if (ex.InnerException is SocketException innerEx && innerEx.SocketErrorCode != SocketError.ConnectionRefused)
                         break;
                 }
 
@@ -368,11 +375,16 @@ public partial class MainWin : Window
             MainPres.IsMihomoIniting = false;
         }
         else
+        {
             foreach (Process mihomoProcess in Process.GetProcessesByName(Path.GetFileNameWithoutExtension(MainConst.MihomoPath)))
             {
                 mihomoProcess.Kill();
                 await mihomoProcess.WaitForExitAsync();
             }
+
+            MihomoMixedPort = 7880;
+            MihomoConfWatcher_Changed(null!, null!);
+        }
     }
 
     private void EditHostButton_Click(object sender, RoutedEventArgs e)
