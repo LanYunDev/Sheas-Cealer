@@ -1,27 +1,29 @@
-﻿using System.IO;
+﻿using Sheas_Cealer.Consts;
+using System;
+using System.IO;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
-using Sheas_Cealer.Consts;
+using System.Threading.Tasks;
 
 namespace Sheas_Cealer.Utils
 {
     internal static class NginxCleaner
     {
-        private static readonly object IsCleaningLock = new();
+        private static readonly SemaphoreSlim IsCleaningSemaphore = new(1);
 
-        internal static void Clean()
+        internal static async Task Clean()
         {
-            if (!Monitor.TryEnter(IsCleaningLock))
+            if (!await IsCleaningSemaphore.WaitAsync(0))
                 return;
 
             try
             {
-                string hostsContent = File.ReadAllText(MainConst.HostsConfPath);
-                int hostsConfStartIndex = hostsContent.IndexOf(MainConst.HostsConfStartMarker);
-                int hostsConfEndIndex = hostsContent.LastIndexOf(MainConst.HostsConfEndMarker);
+                string hostsContent = await File.ReadAllTextAsync(MainConst.HostsConfPath);
+                int hostsConfStartIndex = hostsContent.IndexOf(MainConst.HostsConfStartMarker, StringComparison.Ordinal);
+                int hostsConfEndIndex = hostsContent.LastIndexOf(MainConst.HostsConfEndMarker, StringComparison.Ordinal);
 
                 if (hostsConfStartIndex != -1 && hostsConfEndIndex != -1)
-                    File.WriteAllText(MainConst.HostsConfPath, hostsContent.Remove(hostsConfStartIndex, hostsConfEndIndex - hostsConfStartIndex + MainConst.HostsConfEndMarker.Length));
+                    await File.WriteAllTextAsync(MainConst.HostsConfPath, hostsContent.Remove(hostsConfStartIndex, hostsConfEndIndex - hostsConfStartIndex + MainConst.HostsConfEndMarker.Length));
 
                 using X509Store certStore = new(StoreName.Root, StoreLocation.CurrentUser, OpenFlags.ReadWrite);
 
@@ -38,7 +40,7 @@ namespace Sheas_Cealer.Utils
 
                 certStore.Close();
             }
-            finally { Monitor.Exit(IsCleaningLock); }
+            finally { IsCleaningSemaphore.Release(); }
         }
     }
 }
