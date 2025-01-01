@@ -85,8 +85,6 @@ public partial class MainWin : Window
             foreach (string cealHostPath in Directory.GetFiles(CealHostWatcher.Path, CealHostWatcher.Filter))
                 CealHostWatcher_Changed(null!, new(new(), Path.GetDirectoryName(cealHostPath)!, Path.GetFileName(cealHostPath)));
 
-            MihomoConfWatcher_Changed(null!, null!);
-
             if (MainConst.IsAdmin && !MainPres.IsConginxRunning && !MainPres.IsNginxRunning)
                 await NginxCleaner.Clean();
 
@@ -756,6 +754,7 @@ public partial class MainWin : Window
             CealArgs = @$"--host-rules=""{hostRules.TrimEnd(',')}"" --host-resolver-rules=""{hostResolverRules.TrimEnd(',')}"" --test-type --ignore-certificate-errors";
 
             NginxConfWatcher_Changed(null!, null!);
+            MihomoConfWatcher_Changed(null!, null!);
         }
     }
     private async void NginxConfWatcher_Changed(object sender, FileSystemEventArgs e)
